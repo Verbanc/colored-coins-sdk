@@ -14,6 +14,43 @@ var testnetBlockExplorerHost = 'https://testnet.explorer.coloredcoins.org'
 
 var verifierPath = 'https://www.coloredcoins.org/explorer/verify/api.php'
 
+var bloquedUTXOs = {};
+
+var removeBloquedUTXO = function (id) {
+  delete bloquedUTXOs[id];
+};
+
+var blockUTXO = function (id) {
+  bloquedUTXOs[id] = id;
+  setTimeout(function(){
+    if (bloquedUTXOs[id]) {
+      removeBloquedUTXO(id);
+    }
+  });
+};
+
+var blockUTXOs = function (utxos) {
+  utxos.forEach(function(utxo) {
+    bloquedUTXOs[id] = id;
+    setTimeout(function(){
+      if (bloquedUTXOs[id]) {
+        removeBloquedUTXO(id);
+      }
+    });
+  })
+};
+
+var checkBlockedUTXO = function (utoxs) {
+  var exists = null;
+  utoxs.forEach(function(blockUtxo){
+     if (bloquedUTXOs[blockUTXO]){
+       exists = true;
+     }
+  });
+
+  return exists;
+};
+
 var ColoredCoins = function (settings) {
   var self = this
   settings = settings || {}
@@ -84,6 +121,18 @@ ColoredCoins.prototype.buildTransaction = function (type, ccArgs, callback) {
   ccArgs.flags = ccArgs.flags || {}
   ccArgs.flags.injectPreviousOutput = true
   ccArgs.flags.splitChange = typeof ccArgs.flags.splitChange !== 'undefined' ? ccArgs.flags.splitChange : true
+
+  // check if one of utxos are blocked
+  var canUseUtxo = checkBlockedUTXO(ccArgs.utoxs)
+
+  if(!canUseUtxo) {
+    var err = new Error('The UTXOs you wanted use are bloqued or in use by other transaccion, please try in a few seconds');
+    return callback(err, null)
+  }
+  
+  // block utx until the verification
+  blockUTXOs(ccArgs.utoxs);
+
   this.cc.post(functionName, ccArgs, callback)
 }
 
